@@ -9,8 +9,7 @@ on:
 
 env:
   MLFLOW_TRACKING_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
-
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}  <-- Pastikan ini sama dengan nama di Settings GitHub
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
