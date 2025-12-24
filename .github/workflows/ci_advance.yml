@@ -7,7 +7,7 @@ on:
 
 env:
   MLFLOW_TRACKING_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
 
 jobs:
   build-and-push:
@@ -33,17 +33,20 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Train Model
+    - name: Train Model (MLflow Project)
       working-directory: ./MLProject
       env:
+        MLFLOW_TRACKING_URI: "https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
         MLFLOW_TRACKING_USERNAME: "andrianrv"
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-      run: python modelling.py
+      run: |
+        # INI PERUBAHANNYA: Menggunakan 'mlflow run' bukan 'python ...'
+        # --env-manager=local artinya kita pakai pip yang sudah diinstall di langkah sebelumnya (biar cepat)
+        mlflow run . --env-manager=local --experiment-name "Eksperimen_SML_Andrian_Radita"
 
     - name: Build and Push Docker
       working-directory: ./MLProject
       run: |
         echo "Building Docker from Local Model..."
-        # HAPUS --enable-mlserver agar kembali ke mode standar yang kompatibel
         mlflow models build-docker -m "model_output" -n "${{ secrets.DOCKER_USERNAME }}/vgsales-model:latest"
         docker push ${{ secrets.DOCKER_USERNAME }}/vgsales-model:latest
