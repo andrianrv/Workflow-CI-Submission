@@ -1,1 +1,4 @@
 https://hub.docker.com/u/andrianrv
+https://hub.docker.com/repository/docker/andrianrv/vgsales-model/general
+https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita
+https://github.com/andrianrv/Workflow-CI-Submission
