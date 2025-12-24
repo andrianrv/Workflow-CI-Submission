@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'MLProject/**'
 
 env:
   MLFLOW_TRACKING_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}  <-- Pastikan ini sama dengan nama di Settings GitHub
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+  # Tambahkan ini agar semua langkah tahu tujuannya ke mana
+  MLFLOW_TRACKING_URI: "https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -37,10 +38,9 @@ jobs:
     - name: Train Model
       working-directory: ./MLProject
       env:
-        MLFLOW_TRACKING_USERNAME: "andrianrv"
+        # Kita pertegas lagi credentialnya disini
+        MLFLOW_TRACKING_USERNAME: "andrianrv" 
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
-        # --- TAMBAHKAN BARIS INI (PENTING!) ---
-        MLFLOW_TRACKING_URI: "https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
       run: python modelling.py
 
     - name: Read Run ID
@@ -51,15 +51,18 @@ jobs:
         echo "Detected Run ID: $run_id"
 
     - name: Build & Push Docker
+      # Langkah ini yang tadi error, sekarang kita pastikan dia punya akses
+      env:
+        MLFLOW_TRACKING_USERNAME: "andrianrv"
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
-        export MLFLOW_TRACKING_URI="https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
-        export MLFLOW_TRACKING_USERNAME="andrianrv"
-        export MLFLOW_TRACKING_PASSWORD="${{ secrets.MLFLOW_TRACKING_PASSWORD }}"
-
-        # Menggunakan $RUN_ID (gaya bash) agar aman
+        echo "Building Docker for Run ID: $RUN_ID"
+        
+        # Perintah Build
         mlflow models build-docker \
           -m "runs:/$RUN_ID/model" \
           -n "${{ secrets.DOCKER_USERNAME }}/vgsales-model:latest" \
           --enable-mlserver
 
+        # Push
         docker push ${{ secrets.DOCKER_USERNAME }}/vgsales-model:latest
