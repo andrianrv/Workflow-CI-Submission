@@ -9,7 +9,7 @@ on:
 
 env:
   MLFLOW_TRACKING_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-  MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }} # Sesuaikan nama secret token DagsHub Anda
+  MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
 
 jobs:
   build-and-push:
@@ -47,6 +47,7 @@ jobs:
       run: |
         run_id=$(cat run_id.txt)
         echo "RUN_ID=$run_id" >> $GITHUB_ENV
+        echo "Detected Run ID: $run_id"
 
     - name: Build & Push Docker
       run: |
@@ -54,8 +55,9 @@ jobs:
         export MLFLOW_TRACKING_USERNAME="andrianrv"
         export MLFLOW_TRACKING_PASSWORD="${{ secrets.MLFLOW_TRACKING_PASSWORD }}"
 
+        # Menggunakan $RUN_ID (gaya bash) agar aman
         mlflow models build-docker \
-          -m "runs:/${{ env.RUN_ID }}/model" \
+          -m "runs:/$RUN_ID/model" \
           -n "${{ secrets.DOCKER_USERNAME }}/vgsales-model:latest" \
           --enable-mlserver
 
