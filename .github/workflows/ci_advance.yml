@@ -39,6 +39,8 @@ jobs:
       env:
         MLFLOW_TRACKING_USERNAME: "andrianrv"
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        # --- TAMBAHKAN BARIS INI (PENTING!) ---
+        MLFLOW_TRACKING_URI: "https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
       run: python modelling.py
 
     - name: Read Run ID
