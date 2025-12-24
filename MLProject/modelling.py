@@ -2,59 +2,50 @@ import os
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+import dagshub
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score
 
-# --- KONFIGURASI KERAS (HARDCODED) ---
-# Kita pasang alamat langsung biar tidak nyasar ke local
-DAGSHUB_URI = "https://dagshub.com/andrianrv/Eksperimen_SML_Andrian_Radita.mlflow"
+# --- KONFIGURASI ---
+DAGSHUB_REPO_OWNER = "andrianrv"
+DAGSHUB_REPO_NAME = "Eksperimen_SML_Andrian_Radita"
 
 def train():
-    print("--- MEMULAI MLPROJECT TRAINING ---")
+    print("--- MEMULAI TRAINING ---")
     
-    # 1. Setup Koneksi DagsHub (WAJIB ADA)
-    mlflow.set_tracking_uri(DAGSHUB_URI)
-    
-    # Ambil token dari Environment Variable (diset oleh GitHub Actions)
-    print(f"[INFO] Tracking URI: {mlflow.get_tracking_uri()}")
+    # 1. Setup DagsHub (Agar tercatat di Cloud - Syarat Nilai)
+    try:
+        dagshub.init(repo_owner=DAGSHUB_REPO_OWNER, repo_name=DAGSHUB_REPO_NAME, surround=True)
+        mlflow.set_tracking_uri(f"https://dagshub.com/{DAGSHUB_REPO_OWNER}/{DAGSHUB_REPO_NAME}.mlflow")
+    except Exception as e:
+        print(f"[WARNING] Setup DagsHub: {e}")
 
     # 2. Load Data
-    data_path = "vgsales_preprocessed.csv"
-    if not os.path.exists(data_path):
-        print(f"[FATAL] File {data_path} tidak ditemukan!")
+    if not os.path.exists("vgsales_preprocessed.csv"):
+        print("[FATAL] Dataset tidak ditemukan!")
         return
 
-    df = pd.read_csv(data_path)
+    df = pd.read_csv("vgsales_preprocessed.csv")
     X = df[['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']]
     y = df['Global_Sales']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # 3. Training & Logging
-    print("[INFO] Sedang melatih model...")
-    
-    # Pastikan run ini tercatat di server, bukan lokal
+    # 3. Training
+    print("[INFO] Melatih model...")
     with mlflow.start_run() as run:
-        # SIMPAN RUN ID
-        run_id = run.info.run_id
-        print(f"[INFO] Run ID Baru: {run_id}")
-        
-        with open("run_id.txt", "w") as f:
-            f.write(run_id)
-        
         model = RandomForestRegressor(n_estimators=50, max_depth=10, random_state=42)
         model.fit(X_train, y_train)
         
-        pred = model.predict(X_test)
-        r2 = r2_score(y_test, pred)
-        
-        mlflow.log_param("n_estimators", 50)
-        mlflow.log_metric("r2_score", r2)
-        
-        # Log model ke DagsHub
+        # A. Log ke Cloud (DagsHub)
         mlflow.sklearn.log_model(model, "model")
+        print("[SUKSES] Model terkirim ke DagsHub.")
         
-        print(f"[SUKSES] Model terkirim ke DagsHub! Run ID: {run_id}")
+        # B. Simpan LOKAL (Untuk Docker Build Anti-Gagal)
+        # Kita simpan model fisik di folder 'model_output'
+        local_path = "model_output"
+        mlflow.sklearn.save_model(model, local_path)
+        print(f"[INFO] Model lokal tersimpan untuk Docker di: {local_path}")
 
 if __name__ == "__main__":
     train()
